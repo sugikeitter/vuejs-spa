@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vue.js Single Page Application</title>
+  <meta charset="utf-8">
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+</head>
+<body>
+  <div id="app">
+    <router-link to="/">Top</router-link>
+    <router-link to="/users">User list</router-link>
+    <router-view></router-view>
+  </div>
+</body>
+<script type="x-template" id="user-list">
+  <div>
+    <div class="loading" v-if="loading">Now loading...</div>
+    <div v-if="error" class="error">
+      {{error}}
+    </div>
+    <div v-for="user in users" :key="user.id">
+      <h2><router-link :to="{name: 'user', params: {userId: user.id}}">{{user.name}}</router-link></div>
+    </div>
+  </div>
+</script>
+<script>
+  // TODO JSONを返すAPIを利用するなど
+  var getUsers = function(callback) {
+    setTimeout(function() {
+      callback(null, [
+        {
+          id: '001',
+          name: 'Keita Sugimoto'
+        },
+        {
+          id: '002',
+          name: 'sugikeitter'
+        },
+        {
+          id: '004',
+          name: 'Sugimoto Keita'
+        }
+      ])
+    }, 500)
+  }
+
+  var UserList = {
+    template: '#user-list',
+    data: function() {
+      return {
+        loading: false,
+        users: function() {return []},
+        error: null
+      }
+    },
+    beforeRouteEnter: function(to, from, next) {
+      getUsers((function(err, users) {
+        if (err) {
+          next(function(vm) {
+            vm.error = err.toString()
+          })
+        } else {
+          next(function(vm) {
+            vm.users = users
+          })
+        }
+      }).bind(this))
+    }
+  }
+  var User = {
+    template:
+      '<div class="user">' +
+      '  <h2>User ID is {{ $route.params.userId }}.</h2>' +
+      '  <router-link :to="\'/user/\' + $route.params.userId + \'/profile\'">User profile</router-link>' +
+      '  <router-link :to="\'/user/\' + $route.params.userId + \'/posts\'">User posts</router-link>' +
+      '  <router-view></router-view>' +
+      '<div>'
+  }
+
+  var UserProfile = {
+    template:
+      '<div class="user-profile">' +
+      '  <h3>{{ $route.params.userId }} profile page.</h3>' +
+      '</div>'
+  }
+
+  var UserPosts = {
+    template:
+      '<div class="user-posts">' +
+      '  <h3>{{ $route.params.userId }} posts page.</h3>' +
+      '</div>'
+  }
+
+  var router = new VueRouter({
+    routes: [
+      {
+        path: '/',
+        component: {
+          template: '<div><h1>Top page.</h1></div>'
+        },
+        beforeEnter: (to, from, next) => {
+          if (to.query.notfound === 'true') {
+            next('/notfound')
+          } else {
+            next()
+          }
+        }
+      },
+      {
+        path: '/users',
+        component: UserList
+      },
+      {
+        path: '/user/:userId',
+        name: 'user',
+        component: User,
+        children: [
+          {
+            path: 'profile',
+            component: UserProfile
+          },
+          {
+            path: 'posts',
+            component: UserPosts
+          }
+        ],
+        //beforeEnter: function(to, from, next)
+      },
+      {
+        path: '/404',
+        component: {
+          template: '<div><h1>404 Not found</h1></div>'
+        }
+      },
+      {
+        path: '*',
+        redirect: '/404'
+      }
+    ]
+  });
+
+  var app = new Vue({
+    router: router,
+  }).$mount('#app');
+</script>
+</html>
